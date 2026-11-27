@@ -58,6 +58,20 @@ class Pagos extends BaseController
             ->where('id_liquidacion', $idLiquidacion)
             ->findAll();
 
+        $totalPagado = round(array_sum(array_map(
+            static fn(array $p): float => (float) $p['monto'],
+            $pagos
+        )), 2);
+        $saldoBase = max(0, round((float) $liquidacion['monto'] - $totalPagado, 2));
+        $montoReferencia = $saldoBase > 0 ? $saldoBase : (float) $liquidacion['monto'];
+
+        $interesGet = $this->request->getGet('interes');
+        $porcentajeInteres = ($interesGet !== null && is_numeric($interesGet) && (float) $interesGet > 0)
+            ? round((float) $interesGet, 2)
+            : 0.0;
+        $montoRecargo = round($montoReferencia * ($porcentajeInteres / 100), 2);
+        $montoSugerido = round($montoReferencia + $montoRecargo, 2);
+
         $context = [
             'titulo' => "Registrar pago",
             'socio' => $socio,
@@ -66,6 +80,9 @@ class Pagos extends BaseController
             'cajas' => $cajas,
             'recaudadores' => $recaudadores,
             'recaudadorSeleccionado' => $recaudadorSeleccionado,
+            'porcentajeInteres' => $porcentajeInteres,
+            'montoRecargo' => $montoRecargo,
+            'montoSugerido' => $montoSugerido,
         ];
 
         echo view('panel/header', $context);

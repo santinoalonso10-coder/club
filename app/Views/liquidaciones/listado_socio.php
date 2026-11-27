@@ -61,9 +61,22 @@
                 echo '<td>' . esc($cobrador) . '</td>';
                 echo '<td>';
                 if ($h['estado'] !== 'Pagado' && $puedePagar) {
-                    echo '<a class="btn btn-success" href="' . base_url('public/pagos/nuevo/' . $idSocio . '/' . $h['liquidacion']['id']) . '">Pagar</a>';
+                    $urlBasePago = base_url('public/pagos/nuevo/' . $idSocio . '/' . $h['liquidacion']['id']);
+                    echo '<div class="d-flex flex-column gap-1">';
+
+                    if ($h['estado'] === 'Pago vencido') {
+                        echo '<div class="input-group input-group-sm" style="max-width: 140px;">';
+                        echo '<input type="number" class="form-control input-interes-vencido" '
+                            . 'data-base-url="' . esc($urlBasePago, 'attr') . '" '
+                            . 'min="0" step="0.01" placeholder="% interés" aria-label="Porcentaje de interés">';
+                        echo '<span class="input-group-text">%</span>';
+                        echo '</div>';
+                    }
+
+                    echo '<a class="btn btn-success btn-sm btn-pagar-liq" href="' . esc($urlBasePago, 'attr') . '">Pagar</a>';
+                    echo '</div>';
                 } elseif ($h['estado'] === 'Pagado') {
-                    echo '<button class="btn btn-secondary" disabled>Pago realizado</button>';
+                    echo '<button class="btn btn-secondary btn-sm" disabled>Pago realizado</button>';
                 } else {
                     echo '<span class="text-muted">Sin permiso de pago</span>';
                 }
@@ -74,3 +87,24 @@
         ?>
     </tbody>
 </table>
+
+<script>
+document.querySelectorAll('.input-interes-vencido').forEach((input) => {
+    const actualizarHref = () => {
+        const fila = input.closest('td');
+        const enlace = fila ? fila.querySelector('.btn-pagar-liq') : null;
+        if (!enlace) return;
+
+        const baseUrl = input.dataset.baseUrl;
+        const rawVal = input.value.trim();
+        const porcentaje = rawVal !== '' ? Math.max(0, parseFloat(rawVal) || 0) : 0;
+
+        enlace.href = porcentaje > 0
+            ? `${baseUrl}?interes=${encodeURIComponent(porcentaje)}`
+            : baseUrl;
+    };
+
+    input.addEventListener('input', actualizarHref);
+    input.addEventListener('change', actualizarHref);
+});
+</script>

@@ -176,9 +176,7 @@ class Liquidaciones extends BaseController
         $fechaAlta = date('Y-m-d', strtotime($socio['fecha_alta']));
 
         // Liquidaciones desde la fecha de alta
-        $liquidaciones = $this->liquidaciones
-            ->where('fecha_vencimiento >=', $fechaAlta)
-            ->findAll();
+        $liquidaciones = $this->liquidaciones->findAll();
 
         $planesSocio = $this->sociosPlanes
             ->where('id_socio', $idSocio)
@@ -203,6 +201,7 @@ class Liquidaciones extends BaseController
             ->findAll();
 
         // Armar historial
+        $hoy = date('Y-m-d');
         $historial = [];
         foreach ($liquidaciones as $liq) {
             $pagosLiquidacion = array_filter(
@@ -217,16 +216,28 @@ class Liquidaciones extends BaseController
                 2
             );
             $montoLiquidacion = (float) $liq['monto'];
+            $saldoPendiente = max(0, round($montoLiquidacion - $totalPagado, 2));
             $pago = $pagosLiquidacion ? reset($pagosLiquidacion) : null;
-            $estado = $totalPagado <= 0
-                ? 'Pendiente'
-                : ($totalPagado < $montoLiquidacion ? 'Pago parcial' : 'Pagado');
+
+            $fechaVenc = !empty($liq['fecha_vencimiento'])
+                ? date('Y-m-d', strtotime($liq['fecha_vencimiento']))
+                : null;
+
+            if ($saldoPendiente <= 0) {
+                $estado = 'Pagado';
+            } elseif ($fechaVenc !== null && $fechaVenc < $hoy) {
+                $estado = 'Pago vencido';
+            } elseif ($totalPagado > 0 && $totalPagado < $montoLiquidacion) {
+                $estado = 'Pago parcial';
+            } else {
+                $estado = 'Pendiente';
+            }
 
             $historial[] = [
                 'liquidacion' => $liq,
                 'pago' => $pago,
                 'total_pagado' => $totalPagado,
-                'saldo_pendiente' => max(0, round($montoLiquidacion - $totalPagado, 2)),
+                'saldo_pendiente' => $saldoPendiente,
                 'estado' => $estado
             ];
         }

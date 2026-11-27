@@ -1,12 +1,21 @@
 <?php
 #echo $titulo;
+$porcentajeInteres = $porcentajeInteres ?? 0.0;
+$montoRecargo = $montoRecargo ?? 0.0;
+$valorMontoInicial = old('monto', $montoSugerido ?? ($liquidacion['monto'] ?? ''));
 ?>
-<?php #echo $titulo; ?>
 <br><br>
-<h3>Pago de liquidación: <?= $liquidacion['nombre'] ?></h3>
-<p>Socio: <?= $socio['nombre'].' '.$socio['apellido'] ?></p>
-<p>Monto base: <?= $liquidacion['monto'] ?></p>
+<h3>Pago de liquidación: <?= esc($liquidacion['nombre']) ?></h3>
+<p>Socio: <?= esc($socio['nombre'] . ' ' . $socio['apellido']) ?></p>
+<p>Monto base: $<?= number_format((float) $liquidacion['monto'], 2, ',', '.') ?></p>
 <p>Fecha de vencimiento: <?= date('d/m/Y', strtotime($liquidacion['fecha_vencimiento'])) ?></p>
+
+<?php if ($porcentajeInteres > 0): ?>
+    <div class="alert alert-info">
+        Interés aplicado por vencimiento: <strong><?= esc(number_format((float) $porcentajeInteres, 2, ',', '.')) ?>%</strong>
+        (Recargo: <strong>$<?= number_format((float) $montoRecargo, 2, ',', '.') ?></strong>).
+    </div>
+<?php endif ?>
 
 <?php if (session()->getFlashdata('error')): ?>
     <div class="alert alert-danger"><?= esc(session()->getFlashdata('error')) ?></div>
@@ -21,11 +30,11 @@ echo base_url();
 
 ?>public/pagos/guardar
 " method="post">
-    <input type="hidden" name="id_socio" value="<?= $socio['id'] ?>">
-    <input type="hidden" name="id_liquidacion" value="<?= $liquidacion['id'] ?>">
+    <input type="hidden" name="id_socio" value="<?= (int) $socio['id'] ?>">
+    <input type="hidden" name="id_liquidacion" value="<?= (int) $liquidacion['id'] ?>">
 
     <label class="form-label" for="monto">Monto</label>
-    <input class="form-control" type="number" name="monto" id="monto" value="<?= esc($liquidacion['monto'] ?? '') ?>" min="0" step="0.01" placeholder="Ingrese un monto">
+    <input class="form-control" type="number" name="monto" id="monto" value="<?= esc($valorMontoInicial) ?>" min="0" step="0.01" placeholder="Ingrese un monto">
 
     <label class="form-label" for="fecha_pago">Fecha de Pago</label>
     <input class="form-control" type="date" name="fecha_pago" id="fecha_pago" value="<?= date('Y-m-d') ?>" placeholder="dd/mm/AAAA">
@@ -49,7 +58,7 @@ echo base_url();
     <select class="form-control" id="id_caja" name="id_caja">
         <?php
         foreach ($cajas as $c) {
-            echo '<option value="' . $c['id'] . '">' . $c['denominacion'] . '</option>';
+            echo '<option value="' . (int) $c['id'] . '">' . esc($c['denominacion']) . '</option>';
         }
         ?>
     </select>
